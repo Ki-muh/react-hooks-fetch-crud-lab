@@ -2,58 +2,70 @@ import React, {useEffect, useState} from "react";
 import QuestionItem from "./QuestionItem";
 
 function QuestionList() {
-  const [quizes, setQuizes] = useState([])
-  console.log(quizes)
-  useEffect(() => {
-    fetch("http://localhost:4000/questions")
-      .then((res) => res.json())
-      .then((questions) => setQuizes(questions));
-  }, []);
+  const [questions, setQuestions ] = useState([]);
+  let url = "http://localhost:4000/questions"
 
-  function handleChangeAnswer(id, correctIndex) {
-    console.log(id)
-    fetch(`http://localhost:4000/questions/${id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ correctIndex }),
+  useEffect(()=> {
+    fetch(url)
+    .then(res => res.json())
+    .then(data => setQuestions(data))
+    .catch(err => console.log(err))
+  },[url])
+
+  function deleteQuestion(id){
+    let deleteUrl = `http://localhost:4000/questions/${id}`
+
+    fetch(deleteUrl,{
+      method  : "DELETE",
+      headers : {
+        'Content-Type' : "application/json"
+      }
     })
-      .then((r) => r.json)
-      .then(quizupdated => {
-        const updatedQuiz = quizes.map((quiz) => {
-          if (quiz.id === quizupdated.id) { return quizupdated } else { return quiz }
-        })
-        setQuizes(updatedQuiz)
-      })
-
+    .then(res => res.json())
+    .then(() => {
+      const newQuestions = questions.filter((question) => question.id !== id)
+      setQuestions(...questions,newQuestions);
+    })
+   .catch(err => console.log(err));
   }
 
-  function handleDeleteItem(id) {
-    fetch(`http://localhost:4000/questions/${id}`, {
-      method: 'DELETE'
+  function updateAnswer(id,correctIndex){
+    let indexedUrl = `http://localhost:4000/questions/${id}`
+
+    fetch(indexedUrl,{
+      method : "PATCH",
+      headers : { "Content-Type": "application/json" },
+      body : JSON.stringify( { "correctIndex" : correctIndex })
     })
-      .then(r => r.json())
-      .then(() => {
-        const notDeleted = quizes.filter((quiz) => quiz.id !== id)
-        setQuizes(notDeleted)
-      })
+   .then(res => res.json()
+   .then(data => {
+    const newQuestions = questions.map((question) => {
+      if(question.id === data.id){
+        return data;
+      }
+      return question
+    })
+    
+    setQuestions(newQuestions);
+   }))
+   .catch(err => console.log(err))
   }
-  
+
   return (
     <section>
       <h1>Quiz Questions</h1>
-      <ul>{quizes.map((question=>{
-        return (
-          <QuestionItem
-            key={question.id}
-            question={question}
-            handleChangeAnswer={handleChangeAnswer}
-            handleDeleteItem={handleDeleteItem}
-          />
-        );
-
-      }))}</ul>
+      <ul>
+        {questions.map((question) => {
+          return (
+            <QuestionItem
+               question={question} 
+               key={question.id} 
+               deleteRequest={deleteQuestion}
+               updateAnswer={updateAnswer}
+               />
+          )
+        })}
+        </ul>
     </section>
   );
 }
